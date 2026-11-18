@@ -25,7 +25,7 @@ func (s *userService) ListOrders(ctx context.Context, userID uuid.UUID, in model
 		limit = defaultOrdersLimit
 	}
 	limit = min(limit, maxOrdersLimit)
-	if page-1 > math.MaxInt/limit {
+	if page-1 > math.MaxInt64/limit {
 		return nil, 0, models.ErrInvalidPagination
 	}
 
