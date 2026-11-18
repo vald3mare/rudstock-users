@@ -1,7 +1,6 @@
 package users
 
 import (
-	"math"
 	"net/http"
 
 	"github.com/vald3mare/rudstock-platform/httpx"
@@ -24,13 +23,10 @@ func (h *UserHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, r, err)
 		return
 	}
-	if page < 0 || limit < 0 || page > math.MaxInt || limit > math.MaxInt {
-		writeServiceError(w, r, models.ErrInvalidPagination)
-		return
-	}
+
 	orders, total, err := h.svc.ListOrders(r.Context(), identity.UserID, models.ListOrdersInput{
-		Page:  int(page),
-		Limit: int(limit),
+		Page:  page,
+		Limit: limit,
 	})
 	if err != nil {
 		writeServiceError(w, r, err)

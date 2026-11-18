@@ -38,10 +38,16 @@ func IdentityFrom(ctx context.Context) (Identity, bool) {
 
 func NewClient(baseURL string) (*Client, error) {
 	base, err := url.Parse(baseURL)
-	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Hostname() == "" ||
-		base.User != nil || base.RawQuery != "" || base.ForceQuery || base.Fragment != "" {
-		return nil, errors.New("AUTH_URL must be an HTTP base URL")
+	if err != nil {
+		return nil, errors.New("AUTH_URL is malformed")
 	}
+	if (base.Scheme != "http" && base.Scheme != "https") || base.Hostname() == "" {
+		return nil, errors.New("AUTH_URL must use http or https and include a host")
+	}
+	if base.User != nil || base.RawQuery != "" || base.ForceQuery || base.Fragment != "" {
+		return nil, errors.New("AUTH_URL must not include user info, a query, or a fragment")
+	}
+
 	return &Client{
 		verifyURL: base.JoinPath("auth", "verify").String(),
 		http: &http.Client{

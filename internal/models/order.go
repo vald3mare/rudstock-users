@@ -24,13 +24,13 @@ type OrderItem struct {
 
 // OrderFilter задаёт размер страницы и смещение от начала списка заказов.
 type OrderFilter struct {
-	Limit  int
-	Offset int
+	Limit  int64
+	Offset int64
 }
 
 // ListOrdersInput задаёт страницу истории заказов
 // Нумерация страниц начинается с 1. Ноль выбирает значение по умолчанию
 type ListOrdersInput struct {
-	Page  int
-	Limit int
+	Page  int64
+	Limit int64
 }
