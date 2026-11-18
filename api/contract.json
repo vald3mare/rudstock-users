@@ -1,0 +1,76 @@
+{
+  "service": "rudstock-users",
+  "notes": [
+    "HTTP_ADDR по умолчанию :8083. AUTH_URL по умолчанию http://localhost:8082. DB_DSN может указывать на общую БД с Auth или на отдельную. Для Users достаточно его собственных миграций. Миграция 0004 снимает старые связи с таблицей Auth без удаления данных.",
+    "Все /me требуют Authorization: Bearer <access_token>. ID пользователя и сессии берём из /auth/verify. При смене провайдера существующий профиль и история сохранятся у той же учётной записи, если Auth вернёт прежний user_id.",
+    "Формат ошибок {slug, msg}. В PATCH пропуск поля или null оставляет значение как есть. Пустая строка очищает необязательное поле."
+  ],
+  "public": {
+    "GET /health": { "status": "done", "success": 200, "response": { "status": "ok" }, "note": "Проверка HTTP-сервера без авторизации." }
+  },
+  "me": {
+    "GET /me": {
+      "status": "done",
+      "success": 200,
+      "response": { "id": "uuid", "email": null, "email_verified": null, "name": "Анна", "phone": "+79991234567", "role": "customer" },
+      "errors": [401, 403, 500, 503],
+      "note": "Роль и данные учётной записи берём из Auth. Email и email_verified равны null, пока /auth/verify их не отдаёт. До первого PATCH имя и телефон пустые."
+    },
+    "PATCH /me": { "status": "done", "success": 200, "request": { "name": "Анна", "phone": "+79991234567" }, "response": "Обновлённый профиль в формате GET /me.", "errors": [400, 401, 403, 413, 500, 503], "note": "Нужно хотя бы одно поле. Email и роль не меняются." },
+    "POST /me/password": {
+      "status": "blocked",
+      "success": 204,
+      "request": { "old_password": "<текущий пароль>", "new_password": "<новый пароль>" },
+      "errors": [400, 401, 403, 404, 413, 500, 503],
+      "note": "Пока Auth не предоставляет смену пароля с отзывом остальных сессий, ручка возвращает 503 account-management-unavailable до записи.",
+      "response": "204 без тела"
+    },
+    "DELETE /me": {
+      "status": "blocked",
+      "success": 204,
+      "request": { "password": "<текущий пароль>" },
+      "errors": [400, 401, 403, 404, 413, 500, 503],
+      "note": "Пока Auth не предоставляет подтверждение и удаление учётной записи, ручка возвращает 503 account-management-unavailable до записи. После подтверждённого удаления Users очищает профиль и адреса и обезличивает заказы. Очистку данных можно повторить отдельно.",
+      "response": "204 без тела"
+    },
+    "GET /me/addresses": {
+      "status": "done",
+      "success": 200,
+      "response": [{ "id": "uuid", "city": "Москва", "street": "Тверская", "house": "10", "flat": "15", "comment": "" }],
+      "errors": [401, 403, 500, 503],
+      "note": "Если адресов нет, возвращается []."
+    },
+    "POST /me/addresses": {
+      "status": "done",
+      "success": 201,
+      "request": { "city": "Москва", "street": "Тверская", "house": "10", "flat": "15", "comment": "" },
+      "response": { "address_id": "uuid" },
+      "errors": [400, 401, 403, 413, 500, 503],
+      "note": "Город, улица и дом обязательны. Квартира и комментарий необязательны."
+    },
+    "PATCH /me/addresses/{id}": {
+      "status": "done",
+      "success": 200,
+      "request": { "flat": "", "comment": "Позвонить перед доставкой" },
+      "response": "Обновлённый адрес в формате элемента GET /me/addresses.",
+      "errors": [400, 401, 403, 404, 413, 500, 503],
+      "note": "Менять можно любое поле адреса, кроме ID. Переданный город, улица или дом не могут быть пустыми. Чужой адрес возвращает 404."
+    },
+    "DELETE /me/addresses/{id}": { "status": "done", "success": 204, "errors": [400, 401, 403, 404, 500, 503], "note": "Ответ без тела. Чужой адрес возвращает 404.", "response": "204 без тела" },
+    "GET /me/orders": {
+      "status": "done",
+      "success": 200,
+      "query": { "page": 1, "limit": 20 },
+      "response": { "items": [{ "id": "uuid", "number": "RS-0100", "status": "paid", "total": 1499900 }], "total": 1 },
+      "errors": [400, 401, 403, 500, 503],
+      "note": "0 или пропуск выбирает значения по умолчанию. Лимит до 100. Внешний total — число заказов, total у заказа — сумма в копейках. На пустой странице items: []."
+    },
+    "GET /me/orders/{id}": {
+      "status": "done",
+      "success": 200,
+      "response": { "id": "uuid", "number": "RS-0100", "status": "paid", "total": 1499900, "items": [{ "card_id": "uuid", "quantity": 1 }] },
+      "errors": [400, 401, 403, 404, 500, 503],
+      "note": "Чужой заказ возвращает 404. Сумма в копейках."
+    }
+  }
+}
